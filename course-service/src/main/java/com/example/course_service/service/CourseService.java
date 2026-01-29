@@ -12,7 +12,7 @@ public class CourseService {
     @Autowired
     private CourseRepository repository;
 
-    // CREATE: Add a new course
+    // Add a new course
     public Course createCourse(Course course) {
         if (course.getCourseName() == null || course.getCourseName().isEmpty()) {
             throw new IllegalArgumentException("Course name cannot be empty");
@@ -20,18 +20,18 @@ public class CourseService {
         return repository.save(course);
     }
 
-    // READ: Get all courses
+    // Get all courses
     public List<Course> getAllCourses() {
         return repository.findAll();
     }
 
-    // READ: Get course by ID
+    // Get course by ID
     public Course getCourseById(Long id) {
         return repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Course not found with ID: " + id));
     }
 
-    // UPDATE: Update course
+    // Update course
     public Course updateCourse(Long id, Course courseDetails) {
         Course course = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Course not found with ID: " + id));
@@ -49,7 +49,7 @@ public class CourseService {
         return repository.save(course);
     }
 
-    // DELETE: Delete course
+    // Delete course
     public void deleteCourse(Long id) {
         if (!repository.existsById(id)) {
             throw new RuntimeException("Course not found with ID: " + id);

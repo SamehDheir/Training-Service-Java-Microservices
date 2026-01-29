@@ -13,7 +13,6 @@ public class Course {
     private String description;
     private String trainerName;
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
