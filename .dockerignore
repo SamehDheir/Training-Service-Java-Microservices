@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gradle
+.idea
+.vscode
+*.iml
+*.class
+*.jar
+*.war
+*.ear
+target
+build
+.DS_Store
+.env
+*.log

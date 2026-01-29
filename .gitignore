@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.class
+*.classpath
+*.project
+.settings/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+
+# Spring Boot
+application-*.properties
+.env
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite

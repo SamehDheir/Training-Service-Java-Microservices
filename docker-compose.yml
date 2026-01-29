@@ -1,0 +1,133 @@
+version: '3.9'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: training_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: training_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - training_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  # Eureka Discovery Server
+  discovery-server:
+    build: ./discovery-server
+    container_name: discovery_server
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - training_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8761/eureka/apps"]
+      timeout: 10s
+      retries: 10
+      interval: 10s
+
+  # Config Server
+  config-server:
+    build: ./config-server
+    container_name: config_server
+    restart: on-failure
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config-repo
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    ports:
+      - "8888:8888"
+    networks:
+      - training_network
+    volumes:
+      - ./config-repo:/config-repo
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8888/actuator/health"]
+      timeout: 10s
+      retries: 10
+      interval: 15s
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway
+    restart: on-failure
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=api-gateway
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+    ports:
+      - "8080:8080"
+    networks:
+      - training_network
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+
+  # Course Service
+  course-service:
+    build: ./course-service
+    container_name: course_service
+    restart: on-failure
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/course_db?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - JAVA_OPTS=-Xmx256m -Xms128m
+    ports:
+      - "8081:8081"
+    networks:
+      - training_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  # Enrollment Service
+  enrollment-service:
+    build: ./enrollment-service
+    container_name: enrollment_service
+    restart: on-failure
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/enrollment_db?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+    ports:
+      - "8082:8082"
+    networks:
+      - training_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+networks:
+  training_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
